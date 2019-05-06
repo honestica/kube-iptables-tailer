@@ -23,3 +23,10 @@ workflows:
     jobs:
       - build:
           context: org-global
+  build-tags:
+    jobs:
+      - build:
+          context: org-global
+          filters:
+            tags:
+              only: /.*/
