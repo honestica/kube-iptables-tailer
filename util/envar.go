@@ -10,6 +10,7 @@ import (
 const (
 	IptablesLogPrefix = "IPTABLES_LOG_PREFIX"
 	IptablesLogPath   = "IPTABLES_LOG_PATH"
+	JournalDirectory  = "JOURNAL_DIRECTORY"
 )
 
 // optional env vars
@@ -36,6 +37,10 @@ const (
 
 	WatchLogsIntervalSeconds       = "WATCH_LOGS_INTERVAL_SECONDS"
 	DefaultWatchLogsIntervalSecond = 5
+
+	PodIdentifier        = "POD_IDENTIFIER"
+	DefaultPodIdentifier = "namespace"
+	PodIdentifierLabel   = "POD_IDENTIFIER_LABEL"
 )
 
 func GetRequiredEnvString(key string) string {
