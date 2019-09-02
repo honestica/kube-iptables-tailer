@@ -59,7 +59,8 @@ type PodLocator struct {
  */
 func NewApiServerPodLocator(client *kubernetes.Clientset) (*PodLocator, error) {
 	listWatch := cache.NewListWatchFromClient(
-		client.CoreV1().RESTClient(), "pods", v1.NamespaceAll, fields.Everything())
+		client.CoreV1().RESTClient(), "pods", v1.NamespaceAll,
+		fields.AndSelectors(fields.OneTermEqualSelector("status.phase", "Running")))
 
 	return getPodLocator(listWatch), nil
 }
@@ -120,7 +121,8 @@ func (locator *PodLocator) LocatePod(ip string) (*v1.Pod, error) {
 }
 
 /*
- * 1. If a pod is not using host networking, return its namespace name.
+ * 1. If a pod is not using host networking, return its namespace name, or if the POD_IDENTIFIER
+ *    environment variable is set to 'pod', return the pod name.
  * 2. If a pod is using host networking, return its hostname. This is because multiple pods may
  *    be sharing the host IP, therefore it's impossible to distinguish which pod is the src/dst.
  * 3. If no pod is found, attempt to resolve the IP to hostname.
@@ -128,6 +130,19 @@ func (locator *PodLocator) LocatePod(ip string) (*v1.Pod, error) {
 func getNamespaceOrHostName(pod *v1.Pod, ip string, resolver DnsResolver) string {
 	if pod != nil {
 		if !pod.Spec.HostNetwork {
+			identifier := util.GetEnvStringOrDefault(util.PodIdentifier, util.DefaultPodIdentifier)
+			switch identifier {
+			case "name":
+				return pod.Name
+			case "label":
+				labelKey := util.GetRequiredEnvString(util.PodIdentifierLabel)
+				if labelValue, ok := pod.Labels[labelKey]; ok {
+					return labelValue
+				}
+				return pod.Name
+			case "namespace":
+				return pod.Namespace
+			}
 			return pod.Namespace
 		}
 		if pod.Spec.NodeName != "" {
