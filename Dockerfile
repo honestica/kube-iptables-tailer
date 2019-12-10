@@ -1,10 +1,14 @@
-FROM golang:1.11.5 as builder
+FROM ubuntu:19.10 as builder
+RUN apt-get update
+RUN apt-get install -y golang
+RUN apt-get install -y git
+RUN apt-get install -y libsystemd-dev
+ENV GOPATH /root/go
 WORKDIR $GOPATH/src/github.com/box/kube-iptables-tailer
 COPY . $GOPATH/src/github.com/box/kube-iptables-tailer
-RUN apt-get update && apt-get install libsystemd-dev -y
 RUN make build-cgo
 
-FROM alpine:3.9.3
+FROM ubuntu:19.10
 LABEL maintainer="Saifuding Diliyaer <sdiliyaer@box.com>"
 WORKDIR /root/
-COPY --from=builder /go/src/github.com/box/kube-iptables-tailer/kube-iptables-tailer /kube-iptables-tailer
+COPY --from=builder /root/go/src/github.com/box/kube-iptables-tailer/kube-iptables-tailer /kube-iptables-tailer
