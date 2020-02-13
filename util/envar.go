@@ -21,6 +21,8 @@ const (
 	KubeEventDisplayReason        = "KUBE_EVENT_DISPLAY_REASON"
 	DefaultKubeEventDisplayReason = "PacketDrop"
 
+	LogTimeRegex = "LOG_TIME_REGEX"
+
 	PacketDropLogTimeLayout = "PACKET_DROP_LOG_TIME_LAYOUT"
 	DefaultPacketDropLogTimeLayout = "2006-01-02T15:04:05.000000-07:00"
 
