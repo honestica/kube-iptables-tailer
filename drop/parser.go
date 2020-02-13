@@ -26,7 +26,7 @@ const fieldMacAddress = "MAC"
 var PacketDropLogTimeLayout = util.GetEnvStringOrDefault(util.PacketDropLogTimeLayout, util.DefaultPacketDropLogTimeLayout)
 
 var logTimeRegex = os.Getenv(util.LogTimeRegex)
-var logTimeRegexCompiled = regexp.MustCompile("^(" + logTimeRegex + ") (*)")
+var logTimeRegexCompiled = regexp.MustCompile("^(" + logTimeRegex + ") (.*)")
 
 // PacketDrop is the result object parsed from single raw log containing information about an iptables packet drop.
 type PacketDrop struct {
