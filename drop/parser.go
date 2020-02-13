@@ -7,9 +7,10 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
 	"github.com/box/kube-iptables-tailer/util"
 	"go.uber.org/zap"
+	"os"
+	"regexp"
 )
 
 const fieldSrcIP = "SRC"
@@ -21,6 +22,9 @@ const fieldInterfaceSent = "OUT"
 const fieldInterfaceReceived = "IN"
 const fieldTtl = "TTL"
 const fieldMacAddress = "MAC"
+
+var logTimeRegex = os.Getenv(util.LogTimeRegex)
+var logTimeRegexCompiled = regexp.MustCompile("^(" + logTimeRegex + ") (*)")
 
 // PacketDrop is the result object parsed from single raw log containing information about an iptables packet drop.
 type PacketDrop struct {
@@ -112,6 +116,15 @@ func isRequiredPacketDropLog(logPrefix, log string) bool {
 	return false
 }
 
+func parseTime(packetDropLog string, logFields []string) (logTime string, hostName string) {
+		// get log time and host name
+		if len(logTimeRegex) > 0 {
+			logTimeFields := logTimeRegexCompiled.FindStringSubmatch(packetDropLog)
+			return logTimeFields[1], logTimeFields[2]
+		} else {
+			return logFields[0], logFields[1]
+		}
+}
 // Return a PacketDrop object constructed from given PacketDropLog
 func getPacketDrop(packetDropLog, logTimeLayout string) (PacketDrop, error) {
 	// object PacketDrop needs at least 4 different fields
