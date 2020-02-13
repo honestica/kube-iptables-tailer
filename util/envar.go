@@ -21,6 +21,9 @@ const (
 	KubeEventDisplayReason        = "KUBE_EVENT_DISPLAY_REASON"
 	DefaultKubeEventDisplayReason = "PacketDrop"
 
+	PacketDropLogTimeLayout = "PACKET_DROP_LOG_TIME_LAYOUT"
+	DefaultPacketDropLogTimeLayout = "2006-01-02T15:04:05.000000-07:00"
+
 	KubeEventSourceComponentName        = "KUBE_EVENT_SOURCE_COMPONENT_NAME"
 	DefaultKubeEventSourceComponentName = "kube-iptables-tailer"
 

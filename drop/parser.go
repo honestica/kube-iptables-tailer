@@ -22,6 +22,8 @@ const fieldInterfaceReceived = "IN"
 const fieldTtl = "TTL"
 const fieldMacAddress = "MAC"
 
+var PacketDropLogTimeLayout = util.GetEnvStringOrDefault(util.PacketDropLogTimeLayout, util.DefaultPacketDropLogTimeLayout)
+
 // PacketDrop is the result object parsed from single raw log containing information about an iptables packet drop.
 type PacketDrop struct {
 	LogTime           time.Time
