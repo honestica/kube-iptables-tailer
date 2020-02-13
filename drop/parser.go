@@ -8,12 +8,17 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"os"
+	"regexp"
 )
 
 const fieldSrcIP = "SRC"
 const fieldDstIP = "DST"
 
 var PacketDropLogTimeLayout = util.GetEnvStringOrDefault(util.PacketDropLogTimeLayout, util.DefaultPacketDropLogTimeLayout)
+
+var logTimeRegex = os.Getenv(util.LogTimeRegex)
+var logTimeRegexCompiled = regexp.MustCompile("^(" + logTimeRegex + ") (*)")
 
 // PacketDrop is the result object parsed from single raw log containing information about an iptables packet drop.
 type PacketDrop struct {
@@ -84,6 +89,15 @@ func isRequiredPacketDropLog(logPrefix, log string) bool {
 	return false
 }
 
+func parseTime(packetDropLog string, logFields []string) (logTime string, hostName string) {
+		// get log time and host name
+		if len(logTimeRegex) > 0 {
+			logTimeFields := logTimeRegexCompiled.FindStringSubmatch(packetDropLog)
+			return logTimeFields[1], logTimeFields[2]
+		} else {
+			return logFields[0], logFields[1]
+		}
+}
 // Return a PacketDrop object constructed from given PacketDropLog
 func getPacketDrop(packetDropLog string) (PacketDrop, error) {
 	// object PacketDrop needs at least 4 different fields
@@ -93,7 +107,7 @@ func getPacketDrop(packetDropLog string) (PacketDrop, error) {
 	}
 
 	// get log time and host name
-	logTime, hostName := logFields[0], logFields[1]
+	logTime, hostName := parseTime(packetDropLog, logFields)
 
 	// get src and dst IPs
 	srcIP, err := getFieldValue(logFields, fieldSrcIP)
