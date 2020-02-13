@@ -12,7 +12,8 @@ import (
 
 const fieldSrcIP = "SRC"
 const fieldDstIP = "DST"
-const PacketDropLogTimeLayout = "2006-01-02T15:04:05.000000-07:00"
+
+var PacketDropLogTimeLayout = util.GetEnvStringOrDefault(util.PacketDropLogTimeLayout, util.DefaultPacketDropLogTimeLayout)
 
 // PacketDrop is the result object parsed from single raw log containing information about an iptables packet drop.
 type PacketDrop struct {
