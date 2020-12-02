@@ -1,22 +1,26 @@
 ---
-  apiVersion: "extensions/v1beta1"
+  apiVersion: "apps/v1"
   kind: "DaemonSet"
   metadata: 
     name: "kube-iptables-tailer"
     namespace: "kube-system"
   spec: 
+    selector:
+      matchLabels:
+        app: "kube-iptables-tailer"
     template:
       metadata:
         labels:
           app: "kube-iptables-tailer"
-      spec: 
+      spec:
+        serviceAccount: kube-iptables-tailer
         containers: 
           - name: "kube-iptables-tailer"
             command:
               - "/kube-iptables-tailer"
-              - "--log_dir=/my-service-logs" # change the output directory of service logs
-              - "--v=4" # enable V-leveled logging at this level
-            env: 
+            env:
+              - name: LOG_LEVEL
+                value: info
               - name: "IPTABLES_LOG_PATH"
                 value: "/var/log/iptables.log"
               - name: "IPTABLES_LOG_PREFIX"
@@ -27,13 +31,45 @@
               - name: "iptables-logs"
                 mountPath: "/var/log"
                 readOnly: true
-              - name: "service-logs"
-                mountPath: "/my-service-logs"
-
         volumes:
           - name: "iptables-logs"
             hostPath: 
               # absolute path of the directory containing iptables log file on your host
               path: "/var/log"
-          - name: "service-logs"
-            emptyDir: {}
+
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-iptables-tailer
+  namespace: kube-system
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kube-iptables-tailer
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["v1"]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kube-iptables-tailer
+subjects:
+  - kind: ServiceAccount
+    name: kube-iptables-tailer
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: kube-iptables-tailer
+  apiGroup: rbac.authorization.k8s.io

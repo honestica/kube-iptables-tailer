@@ -5,7 +5,7 @@ package drop
 import (
 	"fmt"
 	"github.com/coreos/go-systemd/sdjournal"
-	"github.com/golang/glog"
+	"go.uber.org/zap"
 	"strings"
 	"time"
 )
@@ -43,18 +43,18 @@ func (watcher *JournalWatcher) Run(logChangeCh chan<- string) {
 
 			return strings.Join([]string{
 				time.Unix(0, int64(entry.RealtimeTimestamp)*int64(time.Microsecond)).
-					Format(PacketDropLogTimeLayout),
+					Format(DefaultPacketDropLogTimeLayout),
 				hostname,
 				msg,
 			}, " ") + "\n", nil
 		},
 	})
 	if err != nil {
-		glog.Fatal(err)
+		zap.L().Fatal(err.Error())
 	}
 
 	if err := reader.Follow(nil, &lineWriter{logChangeCh}); err != nil {
-		glog.Fatal(err)
+		zap.L().Fatal(err.Error())
 	}
 }
 
