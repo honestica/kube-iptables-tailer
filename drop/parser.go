@@ -144,7 +144,7 @@ func getPacketDrop(packetDropLog, logTimeLayout string) (PacketDrop, error) {
 
 	hostName := logFields[1]
 
-	// get src and dst IPs
+  // get src and dst IPs
 	srcIP, err := getFieldValue(logFields, fieldSrcIP)
 	if err != nil {
 		return PacketDrop{}, err
