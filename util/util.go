@@ -3,14 +3,14 @@ package util
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/glog"
+	"go.uber.org/zap"
 	"time"
 )
 
 func PrettyPrint(i interface{}) string {
 	s, err := json.MarshalIndent(i, "", "  ")
 	if err != nil {
-		glog.Errorf("Error marshaling JSON: obj=%+v", i)
+		zap.L().Error("Error marshaling JSON", zap.String("object", fmt.Sprintf("%+v", i)))
 		return fmt.Sprintf("%+v", i)
 	} else {
 		return string(s)
@@ -18,8 +18,8 @@ func PrettyPrint(i interface{}) string {
 }
 
 // Utility functions for packet drop testing
-func GetExpiredTimeInString(expirationMinutes int, timeFormat string) string {
+func GetExpiredTimeIn(expirationMinutes int) time.Time {
 	duration := time.Duration(expirationMinutes) * time.Minute
 	// add one more minute than given expiration to make sure the time is expired
-	return time.Now().Add(-duration - time.Minute).Format(timeFormat)
+	return time.Now().Add(-duration - time.Minute)
 }

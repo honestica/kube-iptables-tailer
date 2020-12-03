@@ -3,17 +3,25 @@ package drop
 import (
 	"errors"
 	"fmt"
-	"github.com/box/kube-iptables-tailer/util"
-	"github.com/golang/glog"
+	"go.uber.org/zap/zapcore"
 	"reflect"
 	"strings"
 	"time"
+	"github.com/box/kube-iptables-tailer/util"
+	"go.uber.org/zap"
 	"os"
 	"regexp"
 )
 
 const fieldSrcIP = "SRC"
+const fieldSrcPort = "SPT"
 const fieldDstIP = "DST"
+const fieldDstPort = "DPT"
+const fieldProto = "PROTO"
+const fieldInterfaceSent = "OUT"
+const fieldInterfaceReceived = "IN"
+const fieldTtl = "TTL"
+const fieldMacAddress = "MAC"
 
 var PacketDropLogTimeLayout = util.GetEnvStringOrDefault(util.PacketDropLogTimeLayout, util.DefaultPacketDropLogTimeLayout)
 
@@ -22,21 +30,38 @@ var logTimeRegexCompiled = regexp.MustCompile("^(" + logTimeRegex + ") (.*)")
 
 // PacketDrop is the result object parsed from single raw log containing information about an iptables packet drop.
 type PacketDrop struct {
-	LogTime  string
-	HostName string
-	SrcIP    string
-	DstIP    string
+	LogTime           time.Time
+	HostName          string
+	SrcIP             string
+	SrcPort           string
+	DstIP             string
+	DstPort           string
+	Proto             string
+	InterfaceReceived string
+	InterfaceSent     string
+	MacAddress        string
+	Ttl               string
 }
 
 var fieldCount = reflect.ValueOf(PacketDrop{}).NumField()
 
+func (pd *PacketDrop) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddTime("pkt_log_time", pd.LogTime)
+	enc.AddString("pkt_src_ip", pd.SrcIP)
+	enc.AddString("pkt_src_port", pd.SrcPort)
+	enc.AddString("pkt_dst_ip", pd.DstIP)
+	enc.AddString("pkt_dst_port", pd.DstPort)
+	enc.AddString("pkt_proto", pd.Proto)
+	enc.AddString("pkt_ttl", pd.Ttl)
+	enc.AddString("pkt_mac_addr", pd.MacAddress)
+	enc.AddString("pkt_interface_recv", pd.InterfaceReceived)
+	enc.AddString("pkt_interface_sent", pd.InterfaceSent)
+	return nil
+}
+
 // Check if PacketDrop is expired
 func (pd PacketDrop) IsExpired() bool {
-	logTime, err := pd.GetLogTime()
-	if err != nil {
-		glog.Errorf("Error retrieving log time to check expiration: %+v", err)
-		return true // we consider it expired if we cannot parse the time
-	}
+	logTime := pd.GetLogTime()
 	curTime := time.Now()
 	expiredMinutes := float64(util.GetEnvIntOrDefault(
 		util.PacketDropExpirationMinutes, util.DefaultPacketDropExpirationMinutes))
@@ -44,30 +69,34 @@ func (pd PacketDrop) IsExpired() bool {
 }
 
 // Get the time object of PacketDrop log time
-func (pd PacketDrop) GetLogTime() (time.Time, error) {
-	return time.Parse(PacketDropLogTimeLayout, pd.LogTime)
+func (pd PacketDrop) GetLogTime() time.Time {
+	return pd.LogTime
 }
 
 // Parse the logs from given channel and insert objects of PacketDrop as parsing result to another channel
 func RunParsing(logPrefix string, logChangeCh <-chan string, packetDropCh chan<- PacketDrop) {
+	logTimeLayout := util.GetEnvStringOrDefault(util.PacketDropLogTimeLayout, util.DefaultPacketDropLogTimeLayout)
 	for log := range logChangeCh {
-		parseErr := parse(logPrefix, log, packetDropCh)
+		parseErr := parse(logPrefix, log, packetDropCh, logTimeLayout)
 		if parseErr != nil {
 			// report the current error log but continue the parsing process
-			glog.Errorf("Cannot parse the log: %s, error: %+v", log, parseErr)
+			zap.L().Error("Cannot parse the log line",
+				zap.String("log", log),
+				zap.String("error", parseErr.Error()),
+			)
 		}
 	}
 }
 
 // Parse the given log, and insert the result to PacketDrop's channel if it's not expired
-func parse(logPrefix, log string, packetDropCh chan<- PacketDrop) error {
+func parse(logPrefix, log string, packetDropCh chan<- PacketDrop, logTimeLayout string) error {
 	// only parse the required packet drop logs
 	if !isRequiredPacketDropLog(logPrefix, log) {
 		return nil
 	}
-	glog.V(4).Infof("Parsing new packet drop: log=%+v", log)
+	zap.L().Debug("Parsing new packet", zap.String("raw", log))
 	// parse the log and get an object of PacketDrop as result
-	packetDrop, err := getPacketDrop(log)
+	packetDrop, err := getPacketDrop(log, logTimeLayout)
 	if err != nil {
 		return err
 	}
@@ -99,7 +128,7 @@ func parseTime(packetDropLog string, logFields []string) (logTime string, hostNa
 		}
 }
 // Return a PacketDrop object constructed from given PacketDropLog
-func getPacketDrop(packetDropLog string) (PacketDrop, error) {
+func getPacketDrop(packetDropLog, logTimeLayout string) (PacketDrop, error) {
 	// object PacketDrop needs at least 4 different fields
 	logFields, err := getPacketDropLogFields(packetDropLog)
 	if err != nil {
@@ -107,10 +136,20 @@ func getPacketDrop(packetDropLog string) (PacketDrop, error) {
 	}
 
 	// get log time and host name
-	logTime, hostName := parseTime(packetDropLog, logFields)
 
-	// get src and dst IPs
+	logTime, err := time.Parse(logTimeLayout, logFields[0])
+	if err != nil {
+		return PacketDrop{}, err
+	}
+
+	hostName := logFields[1]
+
+  // get src and dst IPs
 	srcIP, err := getFieldValue(logFields, fieldSrcIP)
+	if err != nil {
+		return PacketDrop{}, err
+	}
+	srcPort, err := getFieldValue(logFields, fieldSrcPort)
 	if err != nil {
 		return PacketDrop{}, err
 	}
@@ -118,13 +157,48 @@ func getPacketDrop(packetDropLog string) (PacketDrop, error) {
 	if err != nil {
 		return PacketDrop{}, err
 	}
+	dstPort, err := getFieldValue(logFields, fieldDstPort)
+	if err != nil {
+		return PacketDrop{}, err
+	}
+	proto, err := getFieldValue(logFields, fieldProto)
+	if err != nil {
+		return PacketDrop{}, err
+	}
 
-	return PacketDrop{
-			LogTime:  logTime,
-			HostName: hostName,
-			SrcIP:    srcIP,
-			DstIP:    dstIP},
-		nil
+	interfaceReceived, err := getFieldValue(logFields, fieldInterfaceReceived)
+	if err != nil {
+		return PacketDrop{}, err
+	}
+	interfaceSent, err := getFieldValue(logFields, fieldInterfaceSent)
+	if err != nil {
+		return PacketDrop{}, err
+	}
+	macAddress, err := getFieldValue(logFields, fieldMacAddress)
+	if err != nil {
+		return PacketDrop{}, err
+	}
+	ttl, err := getFieldValue(logFields, fieldTtl)
+	if err != nil {
+		return PacketDrop{}, err
+	}
+
+	pd := PacketDrop{
+		LogTime:           logTime,
+		HostName:          hostName,
+		SrcIP:             srcIP,
+		SrcPort:           srcPort,
+		DstIP:             dstIP,
+		DstPort:           dstPort,
+		Proto:             proto,
+		InterfaceReceived: interfaceReceived,
+		InterfaceSent:     interfaceSent,
+		MacAddress:        macAddress,
+		Ttl:               ttl}
+
+	zap.L().Info("Parsed new packet", zap.String("raw", packetDropLog), zap.Object("packet_drop", &pd))
+
+	return pd, nil
 }
 
 // Helper function to check and return fields (if there are enough of them) of given PacketDrop log
