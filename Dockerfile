@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 as builder
+FROM ubuntu:focal-20211006 as builder
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y golang
 RUN apt-get install -y git
@@ -8,7 +8,7 @@ WORKDIR $GOPATH/src/github.com/box/kube-iptables-tailer
 COPY . $GOPATH/src/github.com/box/kube-iptables-tailer
 RUN make build-cgo
 
-FROM ubuntu:20.04
+FROM ubuntu:focal-20211006
 LABEL maintainer="Saifuding Diliyaer <sdiliyaer@box.com>"
 WORKDIR /root/
 COPY --from=builder /root/go/src/github.com/box/kube-iptables-tailer/kube-iptables-tailer /kube-iptables-tailer
