@@ -1,5 +1,5 @@
 FROM ubuntu:20.04 as builder
-RUN apt-get update
+RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y golang
 RUN apt-get install -y git
 RUN apt-get install -y libsystemd-dev
