@@ -1,4 +1,5 @@
 FROM ubuntu:focal-20211006 as builder
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y golang
 RUN apt-get install -y git
