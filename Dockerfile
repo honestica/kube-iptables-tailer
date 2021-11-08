@@ -1,9 +1,7 @@
 FROM ubuntu:focal-20211006 as builder
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y golang
-RUN apt-get install -y git
-RUN apt-get install -y libsystemd-dev
+RUN apt-get install -y golang make git libsystemd-dev
 ENV GOPATH /root/go
 WORKDIR $GOPATH/src/github.com/box/kube-iptables-tailer
 COPY . $GOPATH/src/github.com/box/kube-iptables-tailer
