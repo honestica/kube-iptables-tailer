@@ -4,10 +4,12 @@ package drop
 
 import (
 	"fmt"
-	"github.com/coreos/go-systemd/sdjournal"
-	"go.uber.org/zap"
 	"strings"
 	"time"
+
+	"github.com/box/kube-iptables-tailer/util"
+	"github.com/coreos/go-systemd/sdjournal"
+	"go.uber.org/zap"
 )
 
 // Watcher handles detecting any changes on the given journal and passing those changes through Go Channel to be parsed.

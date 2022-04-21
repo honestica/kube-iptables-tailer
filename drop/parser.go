@@ -3,7 +3,6 @@ package drop
 import (
 	"errors"
 	"fmt"
-	"go.uber.org/zap/zapcore"
 	"reflect"
 	"strings"
 	"time"
@@ -174,10 +173,10 @@ func getPacketDrop(packetDropLog, logTimeLayout string) (PacketDrop, error) {
 	if err != nil {
 		return PacketDrop{}, err
 	}
-	macAddress, err := getFieldValue(logFields, fieldMacAddress)
-	if err != nil {
-		return PacketDrop{}, err
-	}
+
+	// Logs don't always contain the MAC field
+	macAddress, _ := getFieldValue(logFields, fieldMacAddress)
+
 	ttl, err := getFieldValue(logFields, fieldTtl)
 	if err != nil {
 		return PacketDrop{}, err
