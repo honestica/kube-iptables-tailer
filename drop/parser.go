@@ -8,6 +8,7 @@ import (
 	"time"
 	"github.com/box/kube-iptables-tailer/util"
 	"go.uber.org/zap"
+        "go.uber.org/zap/zapcore"
 	"os"
 	"regexp"
 )
