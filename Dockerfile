@@ -1,4 +1,4 @@
-FROM ubuntu:focal-20220404 as builder
+FROM ubuntu:focal-20230412 as builder
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y golang make git libsystemd-dev
