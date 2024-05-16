@@ -18,6 +18,6 @@ require (
 	go.uber.org/zap v1.16.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	k8s.io/api v0.18.0
-	k8s.io/apimachinery v0.18.0
+	k8s.io/apimachinery v0.18.8
 	k8s.io/client-go v0.18.0
 )
