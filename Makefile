@@ -1,6 +1,6 @@
 all: build
 
-ENVVAR = GOOS=linux GOARCH=amd64
+ENVVAR = GOOS=linux
 TAG = v0.1.0
 APP_NAME = kube-iptables-tailer
 
@@ -11,10 +11,10 @@ fmt:
 	find . -path ./vendor -prune -o -name '*.go' -print | xargs -L 1 -I % gofmt -s -w %
 
 build-cgo: clean fmt
-	$(ENVVAR) CGO_ENABLED=1 go build -mod vendor -o $(APP_NAME)
+	$(ENVVAR) GOARCH=$(GOARCH) GOOS=linux CGO_ENABLED=1 go build -mod vendor -o $(APP_NAME)
 
 build: clean fmt
-	$(ENVVAR) CGO_ENABLED=0 go build -mod vendor -o $(APP_NAME)
+	$(ENVVAR) GOARCH=$(GOARCH) GOOS=linux CGO_ENABLED=0 go build -mod vendor -o $(APP_NAME)
 
 test-unit: clean deps fmt build
 	CGO_ENABLED=0 go test -v -cover ./...
